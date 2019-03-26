@@ -18,11 +18,11 @@ let mickey = new Miner("Mickey", fakeNet.broadcast);
 console.log("Starting simulation.  This may take a moment...");
 
 let genesis = Block.makeGenesisBlock([
-  { client: alice, amount: 133},
-  { client: bob, amount: 99},
-  { client: charlie, amount: 67},
-  { client: minnie, amount: 400},
-  { client: mickey, amount: 322},
+  { client: alice, amount: 133 },
+  { client: bob, amount: 99 },
+  { client: charlie, amount: 67 },
+  { client: minnie, amount: 400 },
+  { client: mickey, amount: 322 },
 ]);
 
 console.log("Initial balances:");
@@ -41,7 +41,6 @@ mickey.initialize(genesis);
 
 // Alice transfers some money to Bob.
 let bobAddr = bob.wallet.makeAddress();
-console.log(`Alice is transfering 40 coins to ${bobAddr}`);
 alice.postTransaction([{ amount: 40, address: bobAddr }]);
 
 // Print out the final balances after it has been running for some time.

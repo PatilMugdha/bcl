@@ -2,7 +2,7 @@
 
 const keypair = require('keypair');
 
-const utils = require('./utils.js')
+const utils = require('./utils.js');
 
 /**
  * A wallet is a collection of "coins", where a coin is defined as
@@ -15,7 +15,7 @@ const utils = require('./utils.js')
  * For simplicity, we use a JBOK ("just a bag of keys") wallet.
  */
 module.exports = class Wallet {
-  
+
   /**
    * Initializes an array for coins as well as an address->keypair map.
    * 
@@ -32,6 +32,7 @@ module.exports = class Wallet {
     // An address is the hash of the public key.
     // Its value is the public/private key pair.
     this.addresses = {};
+    this.kp = utils.generateKeypair();
   }
 
   /**
@@ -40,7 +41,7 @@ module.exports = class Wallet {
    * @returns The total number of coins in the wallet.
    */
   get balance() {
-    return this.coins.reduce((acc, {output}) => acc + output.amount, 0);
+    return this.coins.reduce((acc, { output }) => acc + output.amount, 0);
   }
 
   /**
@@ -98,14 +99,62 @@ module.exports = class Wallet {
     //
     // Return an object containing the array of inputs and the
     // amount of change needed.
+    let changeAmount = 0;
+    let collectAmount = 0;
+    let inputs = [];
 
+    while (this.coins.length > 0 && collectAmount < amount) {
+      let output = this.coins[this.coins.length - 1]["output"]; //is utxo. has {amount, address} tuples
+      let txID = this.coins[this.coins.length - 1]["txID"];
+      let outputIndex = this.coins[this.coins.length - 1]["outputIndex"];
+      let oldestCoinAmountFromWallet = output.amount;
+
+      if (oldestCoinAmountFromWallet > amount) {
+        changeAmount += oldestCoinAmountFromWallet - amount;
+        collectAmount += amount;
+        this.coins.pop();
+        //console.log(`Coin length remains the same. Only amount is deducted. Change to be added: ${changeAmount}`);
+
+        inputs.push({
+          txID: txID,
+          outputIndex: outputIndex,
+          pubKey: this.addresses[output.address].public,
+          sig: utils.sign(this.addresses[output.address].private, output),
+        });
+        break;
+      }
+      else if (oldestCoinAmountFromWallet === amount) {
+        collectAmount += amount;
+        this.coins.pop();
+
+        inputs.push({
+          txID: txID,
+          outputIndex: outputIndex,
+          pubKey: this.addresses[output.address].public,
+          sig: utils.sign(this.addresses[output.address].private, output),
+        });
+        break;
+      }
+      else {
+        //if oldestCoinFromWallet<amount
+        collectAmount += oldestCoinAmountFromWallet;
+        //delete this utxo from wallet
+        this.coins.pop();
+
+        inputs.push({
+          txID: txID,
+          outputIndex: outputIndex,
+          pubKey: this.addresses[output.address].public,
+          sig: utils.sign(this.addresses[output.address].private, output),
+        });
+      }
+    }
 
     // Currently returning default values.
     return {
-      inputs: [],
-      changeAmt: 0,
+      inputs: inputs,
+      changeAmt: changeAmount,
     };
-
   }
 
   /**
@@ -131,4 +180,4 @@ module.exports = class Wallet {
   hasKey(address) {
     return !!this.addresses[address];
   }
-}
+};

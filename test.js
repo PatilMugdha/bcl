@@ -33,8 +33,9 @@ describe("Transaction", () => {
     let address = utils.calcAddress(kp.public);
     let tx = new Transaction({
       inputs: [],
-      outputs: [{amount: 42, address: address}],
+      outputs: [{ amount: 42, address: address }],
     });
+    
     it("should return the amount of tokens in the output if the input matches the output.", () => {
       let nextInput = {
         txID: tx.id,
@@ -44,6 +45,7 @@ describe("Transaction", () => {
       };
       assert.equal(tx.spendOutput(nextInput), 42);
     });
+    
     it("should throw an exception if the transaction ID is invalid.", () => {
       let nextInput = {
         txID: 12345,
@@ -55,6 +57,7 @@ describe("Transaction", () => {
         tx.spendOutput(nextInput);
       });
     });
+    
     it("should throw and exception if the signature is invalid.", () => {
       let nextInput = {
         txID: tx.id,
@@ -67,12 +70,14 @@ describe("Transaction", () => {
       });
     });
   });
+  
   describe("#isValid", () => {
     let address = utils.calcAddress(kp.public);
     let cbTX = new Transaction({
       coinBaseReward: 1,
-      outputs: [{amount: 1, address: address},
-                {amount: 42, address: address}],
+      outputs: [{ amount: 1, address: address },
+        { amount: 42, address: address }
+      ],
     });
     let utxos = {};
     utxos[cbTX.id] = cbTX.outputs;
@@ -87,8 +92,9 @@ describe("Transaction", () => {
     it("should consider a transaction valid if the outputs do not exceed the inputs", () => {
       let tx = new Transaction({
         inputs: [input],
-        outputs: [{amount: 20, address: newAddress},
-                  {amount: 10, address: address}],
+        outputs: [{ amount: 20, address: newAddress },
+          { amount: 10, address: address }
+        ],
       });
       assert.isTrue(tx.isValid(utxos));
     });
@@ -96,8 +102,9 @@ describe("Transaction", () => {
     it("should consider a transaction invalid if the outputs exceed the inputs", () => {
       let tx = new Transaction({
         inputs: [input],
-        outputs: [{amount: 20, address: newAddress},
-                  {amount: 30, address: address}],
+        outputs: [{ amount: 20, address: newAddress },
+          { amount: 30, address: address }
+        ],
       });
       assert.isFalse(tx.isValid(utxos));
     });
@@ -111,7 +118,7 @@ describe("Transaction", () => {
       };
       let tx = new Transaction({
         inputs: [badInput],
-        outputs: [{amount: 40, address: newAddress}],
+        outputs: [{ amount: 40, address: newAddress }],
       });
       assert.isFalse(tx.isValid(utxos));
     });
@@ -134,6 +141,7 @@ describe("Wallet", () => {
       assert.equal(w.balance, 67);
     });
   });
+
   describe("#spendUTXOs", () => {
     let w = new Wallet();
     let addr = w.makeAddress();
@@ -161,26 +169,28 @@ describe("Wallet", () => {
 describe('Block', function() {
   describe('#addTransaction', function() {
     // Slow test.
-    /*
+
     let aliceWallet = new Wallet();
     let bobWallet = new Wallet();
     let charlieWallet = new Wallet();
     let gb = Block.makeGenesisBlock([
-      { client: {wallet: aliceWallet}, amount: 150 },
-      { client: {wallet: bobWallet}, amount: 90 },
-      { client: {wallet: charlieWallet}, amount: 20 },
+      { client: { wallet: aliceWallet }, amount: 150 },
+      { client: { wallet: bobWallet }, amount: 90 },
+      { client: { wallet: charlieWallet }, amount: 20 },
     ]);
+
+    //addTransaction called in genesis block initially
     it("should update the block's utxo if the transaction was successful", function() {
       let { inputs } = aliceWallet.spendUTXOs(25);
       let tx = new Transaction({
         inputs: inputs,
-        outputs: [ { address: bobWallet.makeAddress(), amount: 20 } ],
+        outputs: [{ address: bobWallet.makeAddress(), amount: 20 }],
       });
       gb.addTransaction(tx);
       bobWallet.addUTXO(tx.outputs[0], tx.id, 0);
       assert.equal(aliceWallet.balance, 0);
       assert.equal(bobWallet.balance, 110);
     });
-    //*/
+    //
   });
 });

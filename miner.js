@@ -55,7 +55,7 @@ module.exports = class Miner extends Client {
    * @param {boolean} reuseRewardAddress - If set, the miner's previous
    *      coinbase reward address will be reused.
    */
-  startNewSearch(reuseRewardAddress=false) {
+  startNewSearch(reuseRewardAddress = false) {
     // Creating a new address for receiving coinbase rewards.
     // We reuse the old address if 
     if (!reuseRewardAddress) {
@@ -83,7 +83,7 @@ module.exports = class Miner extends Client {
    * 
    * @param {boolean} oneAndDone - Give up after the first PoW search (testing only).
    */
-  findProof(oneAndDone=false) {
+  findProof(oneAndDone = false) {
     let pausePoint = this.currentBlock.proof + NUM_ROUNDS_MINING;
     while (this.currentBlock.proof < pausePoint) {
 
@@ -97,9 +97,19 @@ module.exports = class Miner extends Client {
       //
       // After that, create a new block and start searching for a proof.
       // The 'startNewSearch' method might be useful for this last step.
-
+      if (this.currentBlock.verifyProof()) {
+        let coinbaseTX = this.currentBlock.coinbaseTX;
+        this.wallet.addUTXO(coinbaseTX.outputs[0], coinbaseTX.id, 0);
+        this.announceProof();
+        this.startNewSearch(true);
+      }
       this.currentBlock.proof++;
     }
+    //console.log(`Proof found:  ${this.currentBlock.proof}`);
+    //this.emit(POST_TRANSACTION, this.addTransaction);
+    //this.currentBlock.addTransactionFee(this.currentBlock.COINBASE_AMT_ALLOWED);
+    //this.announceProof();
+    //this.startNewSearch(true);
     // If we are testing, don't continue the search.
     if (!oneAndDone) {
       // Check if anyone has found a block, and then return to mining.

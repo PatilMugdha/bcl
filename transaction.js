@@ -37,14 +37,14 @@ module.exports = class Transaction {
    * @param {Array} obj.outputs - An array of the outputs.
    * @param {Array} obj.inputs - An array of the inputs.
    */
-  constructor({outputs, inputs=[]}) {
+  constructor({ outputs, inputs = [] }) {
     this.inputs = inputs;
     this.outputs = outputs;
 
     // The id is determined at creation and remains constant,
     // even if outputs change.  (This case should only come up
     // with coinbase transactions).
-    this.id = utils.hash("" + JSON.stringify({inputs, outputs}));
+    this.id = utils.hash("" + JSON.stringify({ inputs, outputs }));
   }
 
   /**
@@ -55,17 +55,19 @@ module.exports = class Transaction {
    * @param {Object} input - The object representing an input
    */
   spendOutput(input) {
-    let {txID, outputIndex, pubKey, sig} = input;
+    let { txID, outputIndex, pubKey, sig } = input;
     if (txID !== this.id) {
       throw new Error(`Transaction id of input was ${txID}, but this transaction's id is ${this.id}`);
     }
     let output = this.outputs[outputIndex];
-    let {amount, address} = output;
+    let { amount, address } = output;
     if (utils.calcAddress(pubKey) !== address) {
       throw new Error(`Public key does not match its hash for tx ${this.id}, output ${outputIndex}.`);
-    } else if (!utils.verifySignature(pubKey, output, sig)) {
+    }
+    else if (!utils.verifySignature(pubKey, output, sig)) {
       throw new Error(`Invalid signature for ${this.id}, outpout ${outputIndex}.`);
-    } else {
+    }
+    else {
       return amount;
     }
   }
@@ -86,7 +88,6 @@ module.exports = class Transaction {
    * @returns {boolean} True if the transaction is valid, false otherwise.
    */
   isValid(utxos) {
-
     //
     // **YOUR CODE HERE**
     //
@@ -104,7 +105,36 @@ module.exports = class Transaction {
     //      is valid.
     // 4) From here, you can gather the amount of **input** available to
     //      this transaction.
+    let totalIn = 0;
+    let flag = true;
+    this.inputs.forEach((input) => {
+      let txUXTOs = utxos[input.txID];
+      if (txUXTOs[input.outputIndex] !== undefined) {
+        totalIn += txUXTOs[input.outputIndex].amount;
+      }
+      else {
+        console.log(`Matching utxo at index: ${txUXTOs[input.outputIndex]} not found`);
+        flag = false;
+      }
 
+      //verify hash
+      if (txUXTOs[input.outputIndex]["address"] !== utils.calcAddress(input.pubKey)) {
+        console.log(`${txUXTOs[input.outputIndex]["address"]} and ${utils.calcAddress(input.pubKey)} do not match`);
+        flag = false;
+      }
+
+      //verify signature
+      if (!utils.verifySignature(input.pubKey, txUXTOs[input.outputIndex], input.sig)) {
+        throw new Error(`Invalid signature for ${this.id}, output ${input.outputIndex}.`);
+      }
+    });
+
+    let totalOut = 0;
+    this.outputs.forEach((output) => {
+      totalOut += output.amount;
+    });
+
+    return totalIn >= totalOut && flag;
   }
 
   /**
@@ -127,7 +157,7 @@ module.exports = class Transaction {
    */
   totalOutput() {
     return this.outputs.reduce(
-      (acc, {amount}) => acc + amount,
+      (acc, { amount }) => acc + amount,
       0);
   }
-}
+};

@@ -46,10 +46,9 @@ module.exports = class Client extends EventEmitter {
    *    amounts to pay.
    * @param {number} fee - The transaction fee reward to pay the miner.
    */
-  postTransaction(outputs, fee=DEFAULT_TX_FEE) {
+  postTransaction(outputs, fee = DEFAULT_TX_FEE) {
     // We calculate the total value of coins needed.
-    let totalPayments = outputs.reduce((acc, {amount}) => acc + amount, 0) + fee;
-
+    let totalPayments = outputs.reduce((acc, { amount }) => acc + amount, 0) + fee;
     // Make sure the client has enough money.
     if (totalPayments > this.wallet.balance) {
       throw new Error(`Requested ${totalPayments}, but wallet only has ${this.wallet.balance}.`);
@@ -81,4 +80,3 @@ module.exports = class Client extends EventEmitter {
     });
   }
 }
-

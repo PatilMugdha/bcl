@@ -28,6 +28,7 @@ module.exports = class Block {
    *      and the amount of coins that client should start with.
    */
   static makeGenesisBlock(clientInitialFunds) {
+    console.log(`Inside creating a genesis block`);
     // Creating outputs
     let outputs = [];
     clientInitialFunds.forEach(({ client, amount }) => {
@@ -37,8 +38,8 @@ module.exports = class Block {
     });
 
     // Adding funds to clients' wallets
-    let tx = new Transaction({outputs: outputs});
-    clientInitialFunds.forEach(({client}, i) => {
+    let tx = new Transaction({ outputs: outputs });
+    clientInitialFunds.forEach(({ client }, i) => {
       client.wallet.addUTXO(outputs[i], tx.id, i);
     });
 
@@ -68,9 +69,9 @@ module.exports = class Block {
 
     // Transactions need to be recreated and restored in a map.
     b.transactions = new Map();
-    o.transactions.forEach(([txID,txJson]) => {
+    o.transactions.forEach(([txID, txJson]) => {
       let { outputs, inputs } = txJson;
-      let tx = new Transaction({outputs, inputs});
+      let tx = new Transaction({ outputs, inputs });
       tx.id = txID;
       b.transactions.set(txID, tx);
     });
@@ -97,7 +98,7 @@ module.exports = class Block {
     // Note that this is a little simplistic -- an attacker
     // make a long, but low-work chain.  However, this works
     // well enough for us.
-    this.chainLength = prevBlock ? prevBlock.chainLength+1 : 1;
+    this.chainLength = prevBlock ? prevBlock.chainLength + 1 : 1;
 
     this.timestamp = Date.now();
 
@@ -108,7 +109,7 @@ module.exports = class Block {
 
     // Add the initial coinbase reward.
     if (rewardAddr) {
-      let output = { address: rewardAddr, amount: COINBASE_AMT_ALLOWED};
+      let output = { address: rewardAddr, amount: COINBASE_AMT_ALLOWED };
       // The coinbase transaction will be updated to capture transaction fees.
       this.coinbaseTX = new Transaction({ outputs: [output] });
       this.addTransaction(this.coinbaseTX, true);
@@ -137,7 +138,7 @@ module.exports = class Block {
   /**
    * Converts a Block into string form.  Some fields are deliberately omitted.
    */
-  serialize(includeUTXOs=false) {
+  serialize(includeUTXOs = false) {
     return `{ "transactions": ${JSON.stringify(Array.from(this.transactions.entries()))},` +
       (includeUTXOs ? ` "utxos": ${JSON.stringify(this.utxos)},` : '') +
       ` "prevBlockHash": "${this.prevBlockHash}",` +
@@ -163,10 +164,11 @@ module.exports = class Block {
    */
   willAcceptTransaction(tx) {
     if (this.transactions.get(tx.id)) {
-      //console.log(`${tx.id} is a duplicate`);
+      console.log(`${tx.id} is a duplicate`);
       return false;
-    } else if (!tx.isValid(this.utxos)) {
-      //console.log(`${tx.id} is invalid`);
+    }
+    else if (!tx.isValid(this.utxos)) {
+      console.log(`${tx.id} is invalid`);
       return false;
     }
     return true;
@@ -190,13 +192,27 @@ module.exports = class Block {
     //
     // First, store the transaction.
     //
+    this.transactions[tx.id] = tx;
+
     // Next, you will need to update the UTXOs to account for changes made by the transaction.
     // That means you will need to:
     // 1) Delete the spent UTXOs from the UTXO set.
     // 2) Add newly created UTXOs to the UTXO set.
+    this.utxos[tx.id] = tx.outputs;
+
     // 3) Calculate the miner's transaction fee, determined by the difference between the inputs and the outputs.
     //    The addTransactionFee method might help you with this part.
+    let totalIn = 0;
+    tx.inputs.forEach((input) => {
+      totalIn += this.utxos[input.txID][input.outputIndex].amount;
+      delete this.utxos[input.txID][input.outputIndex];
+    });
 
+    let totalOut = 0;
+    tx.outputs.forEach((output) => {
+      totalOut += output.amount;
+    });
+    this.addTransactionFee(totalIn - totalOut);
   }
 
   /**
@@ -218,7 +234,7 @@ module.exports = class Block {
    * A block is valid if all transactions (except for the coinbase transaction) are
    * valid and the total outputs equal the total inputs plus the coinbase reward.
    */
-  isValid(utxos=this.utxos) {
+  isValid(utxos = this.utxos) {
     // The genesis block is automatically valid.
     if (this.isGenesisBlock()) return true;
 
@@ -238,7 +254,6 @@ module.exports = class Block {
     this.transactions.forEach((tx) => {
       totalOut += tx.totalOutput();
     });
-
     return totalIn === totalOut;
   }
 
@@ -249,8 +264,10 @@ module.exports = class Block {
     Object.keys(this.utxos).forEach(txID => {
       let txUTXOs = this.utxos[txID];
       txUTXOs.forEach(utxo => {
-        console.log(JSON.stringify(utxo));
+        if (utxo != null) {
+          console.log(JSON.stringify(utxo));
+        }
       });
     });
   }
-}
+};
